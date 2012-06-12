@@ -2,3 +2,4 @@
 .DS_Store
 build
 dist
+django_db_pool.egg-info
