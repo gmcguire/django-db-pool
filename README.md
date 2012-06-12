@@ -4,13 +4,11 @@ Django DB Pool
 Another connection pool "solution"?
 -----------------------------------
 
-Yes, alas.  Django punts on the problem of pooled / persistant connections[1], generally telling folks to 
-use a dedicated application like PGBouncer (for Postgres.)  However that's not always workable on app-centric
-platforms like Heroku, where each application runs in isolation.  Thus this package.  There are others[2],
-but this one attempts to provide connection persistance / pooling with as few dependencies as possible.
+Yes, alas.  Django punts on the problem of pooled / persistant connections[1][1], generally telling folks to use a dedicated application like PGBouncer (for Postgres.)  However that's not always workable on app-centric platforms like Heroku, where each application runs in isolation.  Thus this package.  There are others[2][2], but this one attempts to provide connection persistance / pooling with as few dependencies as possible.
 
-[1] https://groups.google.com/d/topic/django-users/m1jeE4Cxr9A/discussion
-[2] https://github.com/jinzo/django-dbpool-backend
+Currently only the Django postgres_psycopg2 driver is supported.  Connection pooling is implemented by thinly wrapping a psycopg2 connection object with a pool-aware class.  The actual pool implementation is psycop2g's built-in [ThreadedConnectionPool][http://initd.org/psycopg/docs/pool.html], which handles thread safety for the pool instance, as well as simple dead connection testing when connections are returned. 
+
+Because this implementation sits inside the python interpreter, in a multi-process app server environment the pool will never be larger than one connection.  However, you can still benefit from connection persistance (no connection creation overhead, query plan caching, etc.) so the (minimal) additional overhead of the pool should be outweighed by these benefits. TODO: back this up with some data!
 
 
 Requirements
@@ -46,5 +44,9 @@ like this:
         'PORT': '',
     }
 
-See the [code][dbpool/db/backends/postgres_psycopg2/base.py] for more information.
+See the [code][base] for more information on settings `MAX_CONNS` and `MIN_CONNS`.
+
+[1]: https://groups.google.com/d/topic/django-users/m1jeE4Cxr9A/discussion
+[2]: https://github.com/jinzo/django-dbpool-backend
+[base]: https://github.com/gmcguire/django-db-pool/blob/master/dbpool/db/backends/postgres_psycopg2/base.py#L42
 
