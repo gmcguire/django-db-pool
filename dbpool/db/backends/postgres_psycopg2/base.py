@@ -8,7 +8,9 @@ from django.db.backends.postgresql_psycopg2.base import CursorWrapper, \
     DatabaseWrapper as OriginalDatabaseWrapper
 from django.db.backends.signals import connection_created
 from threading import Lock
+import logging
 
+logger = logging.getLogger(__name__)
 
 class PooledConnection():
     '''
@@ -17,12 +19,14 @@ class PooledConnection():
     def __init__(self, pool):
         self._pool = pool
         self._wrapped_connection = pool.getconn()
+        logger.debug("Checking out connection %s from pool %s" % (self._wrapped_connection, self._pool))
 
     def close(self):
         '''
         Override to return the connection to the pool rather than closing it.
         '''
         if self._wrapped_connection and self._pool:
+            logger.debug("Returning connection %s to pool %s" % (self._wrapped_connection, self._pool))
             self._pool.putconn(self._wrapped_connection)
             self._wrapped_connection = None
 
@@ -96,6 +100,8 @@ class DatabaseWrapper(OriginalDatabaseWrapper):
                 
                 connection_pools_lock.acquire()
                 try:
+                    logger.debug("Creating connection pool for db alias %s" % self.alias)
+
                     from psycopg2 import pool
                     connection_pools[self.alias] = pool.ThreadedConnectionPool(min_conns, max_conns, **conn_params)
                 finally:
