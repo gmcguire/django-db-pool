@@ -34,7 +34,7 @@ class PooledConnection():
         '''
         All other calls proxy through to the "real" connection
         '''
-        return self._wrapped_connection.__getattribute__(attr)
+        return getattr(self._wrapped_connection, attr)
 
 '''
 This holds our connection pool instances (for each alias in settings.DATABASES that 
