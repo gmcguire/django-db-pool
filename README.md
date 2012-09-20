@@ -54,5 +54,5 @@ Lastly, if you use [South](http://south.aeracode.org/) (and you should!) you'll 
 
 [1]: https://groups.google.com/d/topic/django-users/m1jeE4Cxr9A/discussion
 [2]: https://github.com/jinzo/django-dbpool-backend
-[base]: https://github.com/gmcguire/django-db-pool/blob/master/dbpool/db/backends/postgres_psycopg2/base.py#L42
+[base]: https://github.com/gmcguire/django-db-pool/blob/master/dbpool/db/backends/postgresql_psycopg2/base.py#L48-61
 
