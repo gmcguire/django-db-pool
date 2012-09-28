@@ -1,5 +1,14 @@
 *.pyc
 .DS_Store
+.Python
+.project
+.pydevproject
+.settings
+bin
 build
 dist
+include
+lib
+share
+src
 django_db_pool.egg-info
