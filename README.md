@@ -14,7 +14,7 @@ Because this implementation sits inside the python interpreter, in a multi-proce
 Requirements
 ------------
 
-* [Django 1.3](https://www.djangoproject.com/download/) with [Postgres](http://www.postgresql.org/)
+* [Django 1.3 or 1.4](https://www.djangoproject.com/download/) with [Postgres](http://www.postgresql.org/)
 
 
 Installation
