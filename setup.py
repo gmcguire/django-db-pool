@@ -4,12 +4,12 @@ from setuptools import find_packages
 
 setup(
     name='django-db-pool',
-    version='0.0.5',
+    version='0.0.6',
     author=u'Greg McGuire',
     author_email='gregjmcguire+github@gmail.com',
     packages=find_packages(),
     url='https://github.com/gmcguire/django-db-pool',
-    license='BSD licence, see LICENCE',
+    license='BSD licence, see LICENSE',
     description='Basic database persistance / connection pooling for Django + ' + \
                 'Postgres.',
     long_description=open('README.md').read(),
@@ -25,7 +25,7 @@ setup(
     ],
     zip_safe=False,
     install_requires=[
-        "Django>=1.3,<1.3.99",
+        "Django>=1.3,<1.4.99",
         "psycopg2>=2.4",
     ],
 )
