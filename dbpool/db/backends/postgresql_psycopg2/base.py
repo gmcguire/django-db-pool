@@ -64,13 +64,13 @@ class DatabaseWrapper14(OriginalDatabaseWrapper):
     For Django 1.4.x
     '''
     def _cursor(self):
+        global connection_pools
         settings_dict = self.settings_dict
-        if self.connection is None:
+        if self.connection is None or connection_pools[self.alias]['settings'] != settings_dict:
             # Is this the initial use of the global connection_pools dictionary for 
             # this python interpreter? Build a ThreadedConnectionPool instance and 
             # add it to the dictionary if so.
-            global connection_pools
-            if self.alias not in connection_pools:
+            if self.alias not in connection_pools or connection_pools[self.alias]['settings'] != settings_dict:
                 if settings_dict['NAME'] == '':
                     from django.core.exceptions import ImproperlyConfigured
                     raise ImproperlyConfigured("You need to specify NAME in your Django settings file.")
@@ -96,11 +96,14 @@ class DatabaseWrapper14(OriginalDatabaseWrapper):
                     logger.debug("Creating connection pool for db alias %s" % self.alias)
 
                     from psycopg2 import pool
-                    connection_pools[self.alias] = pool.ThreadedConnectionPool(min_conns, max_conns, **conn_params)
+                    connection_pools[self.alias] = {
+                        'pool': pool.ThreadedConnectionPool(min_conns, max_conns, **conn_params),
+                        'settings': dict(settings_dict),
+                    }
                 finally:
                     connection_pools_lock.release()
 
-            self.connection = PooledConnection(connection_pools[self.alias])
+            self.connection = PooledConnection(connection_pools[self.alias]['pool'])
             self.connection.set_client_encoding('UTF8')
             tz = 'UTC' if settings.USE_TZ else settings_dict.get('TIME_ZONE')
             if tz:
@@ -136,21 +139,21 @@ class DatabaseWrapper13(OriginalDatabaseWrapper):
         Override _cursor to plug in our connection pool code.  We'll return a wrapped Connection
         which can handle returning itself to the pool when its .close() method is called.
         '''
+        global connection_pools
         from django.db.backends.postgresql.version import get_version
 
         new_connection = False
         set_tz = False
         settings_dict = self.settings_dict
 
-        if self.connection is None:
+        if self.connection is None or connection_pools[self.alias]['settings'] != settings_dict:
             new_connection = True
             set_tz = settings_dict.get('TIME_ZONE')
 
             # Is this the initial use of the global connection_pools dictionary for 
             # this python interpreter? Build a ThreadedConnectionPool instance and 
             # add it to the dictionary if so.
-            global connection_pools
-            if self.alias not in connection_pools:
+            if self.alias not in connection_pools or connection_pools[self.alias]['settings'] != settings_dict:
                 if settings_dict['NAME'] == '':
                     from django.core.exceptions import ImproperlyConfigured
                     raise ImproperlyConfigured("You need to specify NAME in your Django settings file.")
@@ -176,11 +179,14 @@ class DatabaseWrapper13(OriginalDatabaseWrapper):
                     logger.debug("Creating connection pool for db alias %s" % self.alias)
 
                     from psycopg2 import pool
-                    connection_pools[self.alias] = pool.ThreadedConnectionPool(min_conns, max_conns, **conn_params)
+                    connection_pools[self.alias] = {
+                        'pool': pool.ThreadedConnectionPool(min_conns, max_conns, **conn_params),
+                        'settings': dict(settings_dict),
+                    }
                 finally:
                     connection_pools_lock.release()
- 
-            self.connection = PooledConnection(connection_pools[self.alias])
+
+            self.connection = PooledConnection(connection_pools[self.alias]['pool'])
             self.connection.set_client_encoding('UTF8')
             self.connection.set_isolation_level(self.isolation_level)
             # We'll continue to emulate the old signal frequency in case any code depends upon it
