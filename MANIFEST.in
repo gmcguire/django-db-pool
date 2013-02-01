@@ -1,2 +1,2 @@
 include AUTHORS README.md LICENSE
-recursive-include dbpool *.py *.html *.js
+recursive-include dbpool *.py
