@@ -59,9 +59,43 @@ If your load is spikey and you want to recycle connections, set MIN_CONNS to som
 than MAX_CONNS.   I suggest it should be no lower than your 95th percentile concurrency for 
 your app server.
 '''
-class DatabaseWrapper14(OriginalDatabaseWrapper):
+class DatabaseWrapper16(OriginalDatabaseWrapper):
     '''
-    For Django 1.4.x
+    For Django 1.6.x
+    
+    TODO: See https://github.com/django/django/commit/1893467784deb6cd8a493997e8bac933cc2e4af9
+      but more importantly https://github.com/django/django/commit/2ee21d9f0d9eaed0494f3b9cd4b5bc9beffffae5
+      
+    This code may be no longer needed!    
+    '''
+    def get_new_connection(self, conn_params):
+        global connection_pools
+        
+        # Is this the initial use of the global connection_pools dictionary for 
+        # this python interpreter? Build a ThreadedConnectionPool instance and 
+        # add it to the dictionary if so.
+        if self.alias not in connection_pools or connection_pools[self.alias]['settings'] != self.settings_dict:
+            max_conns = conn_params.pop('MAX_CONNS', 1)
+            min_conns = conn_params.pop('MIN_CONNS', max_conns)
+        
+            connection_pools_lock.acquire()
+            try:
+                logger.debug("Creating connection pool for db alias %s" % self.alias)
+
+                from psycopg2 import pool
+                connection_pools[self.alias] = {
+                    'pool': pool.ThreadedConnectionPool(min_conns, max_conns, **conn_params),
+                    'settings': dict(self.settings_dict),
+                }
+            finally:
+                connection_pools_lock.release()
+
+        return PooledConnection(connection_pools[self.alias]['pool'])
+
+
+class DatabaseWrapper14and15(OriginalDatabaseWrapper):
+    '''
+    For Django 1.4.x and 1.5.x
     '''
     def _cursor(self):
         global connection_pools
@@ -71,9 +105,11 @@ class DatabaseWrapper14(OriginalDatabaseWrapper):
             # this python interpreter? Build a ThreadedConnectionPool instance and 
             # add it to the dictionary if so.
             if self.alias not in connection_pools or connection_pools[self.alias]['settings'] != settings_dict:
-                if settings_dict['NAME'] == '':
+                if not settings_dict['NAME']:
                     from django.core.exceptions import ImproperlyConfigured
-                    raise ImproperlyConfigured("You need to specify NAME in your Django settings file.")
+                    raise ImproperlyConfigured(
+                        "settings.DATABASES is improperly configured. "
+                        "Please supply the NAME value.")
                 conn_params = {
                     'database': settings_dict['NAME'],
                 }
@@ -85,7 +121,7 @@ class DatabaseWrapper14(OriginalDatabaseWrapper):
                 if settings_dict['USER']:
                     conn_params['user'] = settings_dict['USER']
                 if settings_dict['PASSWORD']:
-                    conn_params['password'] = settings_dict['PASSWORD']
+                    conn_params['password'] = force_str(settings_dict['PASSWORD'])
                 if settings_dict['HOST']:
                     conn_params['host'] = settings_dict['HOST']
                 if settings_dict['PORT']:
@@ -123,7 +159,6 @@ class DatabaseWrapper14(OriginalDatabaseWrapper):
                             self.ops.set_time_zone_sql(), [tz])
             self.connection.set_isolation_level(self.isolation_level)
             self._get_pg_version()
-            # We'll continue to emulate the old signal frequency in case any code depends upon it
             connection_created.send(sender=self.__class__, connection=self)
         cursor = self.connection.cursor()
         cursor.tzinfo_factory = utc_tzinfo_factory if settings.USE_TZ else None
@@ -222,13 +257,23 @@ django_version = get_django_version()
 if django_version.startswith('1.3'):
     class DatabaseWrapper(DatabaseWrapper13):
         pass
-elif django_version.startswith('1.4'):
+elif django_version.startswith('1.4') or django_version.startswith('1.5'):
     from django.conf import settings
     from django.db.backends.postgresql_psycopg2.base import utc_tzinfo_factory
     import psycopg2.extensions
 
-    class DatabaseWrapper(DatabaseWrapper14):
+    # The force_str call around the password seems to be the only change from 
+    # 1.4 to 1.5, so we'll use the same DatabaseWrapper class and make 
+    # force_str a no-op.
+    try: 
+        from django.utils.encoding import force_str
+    except ImportError:
+        force_str = lambda x: x
+
+    class DatabaseWrapper(DatabaseWrapper14and15):
+        pass
+elif django_version.startswith('1.6'):
+    class DatabaseWrapper(DatabaseWrapper16):
         pass
 else:
     raise ImportError("Unsupported Django version %s" % django_version)
-

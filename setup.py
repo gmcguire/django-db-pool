@@ -4,7 +4,7 @@ from setuptools import find_packages
 
 setup(
     name='django-db-pool',
-    version='0.0.8',
+    version='0.0.9',
     author=u'Greg McGuire',
     author_email='gregjmcguire+github@gmail.com',
     packages=find_packages(),
@@ -25,7 +25,7 @@ setup(
     ],
     zip_safe=False,
     install_requires=[
-        "Django>=1.3,<1.4.99",
+        "Django>=1.3,<1.6.99",
         "psycopg2>=2.4",
     ],
 )
