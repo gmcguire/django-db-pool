@@ -26,7 +26,7 @@ benefits. TODO: back this up with some data!
 Requirements
 ------------
 
-* [Django 1.3 or 1.4](https://www.djangoproject.com/download/)
+* [Django 1.3 - 1.5](https://www.djangoproject.com/download/)
 * [PostgreSQL](http://www.postgresql.org/) or [PostGIS](http://postgis.net/) for your database
 
 
