@@ -61,7 +61,13 @@ like this:
 
 See the [code][base] for more information on settings `MAX_CONNS` and `MIN_CONNS`.
 
-Lastly, if you use [South](http://south.aeracode.org/) (and you should!) you'll want to make sure it knows that you're still using Postgres:
+You can set `TEST_ON_BORROW` (also in the `OPTIONS`) to True if you would like a connection to be validated each time it is
+checked out.  If you enable this, any connection that fails a test query will be discarded from the pool and a new connection 
+fetched, retrying up to the largest size of the pool.  Since this incurs some overhead you should weigh it against the 
+benefit of transparently recovering from database connection failures.
+
+Lastly, if you use [South](http://south.aeracode.org/) (and you should!) you'll want to make sure it knows that you're still 
+using Postgres:
 
     SOUTH_DATABASE_ADAPTERS = {
         'default': 'south.db.postgresql_psycopg2',
