@@ -4,7 +4,7 @@ Pooled PostgreSQL database backend for Django.
 Requires psycopg 2: http://initd.org/projects/psycopg2
 """
 from django import get_version as get_django_version
-from django.db.backends.postgresql_psycopg2.base import CursorWrapper, \
+from django.db.backends.postgresql_psycopg2.base import \
     DatabaseWrapper as OriginalDatabaseWrapper
 from django.db.backends.signals import connection_created
 from threading import Lock
@@ -45,7 +45,8 @@ class PooledConnection():
                         logger.info("Closing dead connection from pool %s" % self._pool, 
                                     exc_info=sys.exc_info())
                 else:
-                    c.rollback()
+                    if not c.autocommit:
+                        c.rollback()
                     self._wrapped_connection = c
         else:
             self._wrapped_connection = pool.getconn()
@@ -325,11 +326,14 @@ version.  This is a bit hacky, what's a more elegant way?
 '''
 django_version = get_django_version()
 if django_version.startswith('1.3'):
+    from django.db.backends.postgresql_psycopg2.base import CursorWrapper
+    
     class DatabaseWrapper(DatabaseWrapper13):
         pass
 elif django_version.startswith('1.4') or django_version.startswith('1.5'):
     from django.conf import settings
-    from django.db.backends.postgresql_psycopg2.base import utc_tzinfo_factory
+    from django.db.backends.postgresql_psycopg2.base import utc_tzinfo_factory, \
+        CursorWrapper
 
     # The force_str call around the password seems to be the only change from 
     # 1.4 to 1.5, so we'll use the same DatabaseWrapper class and make 

@@ -26,6 +26,6 @@ setup(
     zip_safe=False,
     install_requires=[
         "Django>=1.3,<1.6.99",
-        "psycopg2>=2.4",
+        "psycopg2>=2.4.2",
     ],
 )
