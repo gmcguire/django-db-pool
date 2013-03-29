@@ -104,16 +104,20 @@ def _create_connection_pool(self, conn_params):
     '''
     connection_pools_lock.acquire()
     try:
-        logger.info("Creating connection pool for db alias %s" % self.alias)
-        logger.info("  using MIN_CONNS = %s, MAX_CONNS = %s, TEST_ON_BORROW = %s" % (self._min_conns, 
-                                                                                     self._max_conns,
-                                                                                     self._test_on_borrow))
+        # One more read to prevent a read/write race condition (We do this
+        # here to avoid the overhead of locking each time we get a connection.)
+        if (self.alias not in connection_pools or
+            connection_pools[self.alias]['settings'] != self.settings_dict):
+            logger.info("Creating connection pool for db alias %s" % self.alias)
+            logger.info("  using MIN_CONNS = %s, MAX_CONNS = %s, TEST_ON_BORROW = %s" % (self._min_conns,
+                                                                                         self._max_conns,
+                                                                                         self._test_on_borrow))
 
-        from psycopg2 import pool
-        connection_pools[self.alias] = {
-            'pool': pool.ThreadedConnectionPool(self._min_conns, self._max_conns, **conn_params),
-            'settings': dict(self.settings_dict),
-        }
+            from psycopg2 import pool
+            connection_pools[self.alias] = {
+                'pool': pool.ThreadedConnectionPool(self._min_conns, self._max_conns, **conn_params),
+                'settings': dict(self.settings_dict),
+            }
     finally:
         connection_pools_lock.release()
 
@@ -155,8 +159,6 @@ class DatabaseWrapper16(OriginalDatabaseWrapper):
         self.set_up_pool_config()
 
     def get_new_connection(self, conn_params):
-        global connection_pools
-        
         # Is this the initial use of the global connection_pools dictionary for 
         # this python interpreter? Build a ThreadedConnectionPool instance and 
         # add it to the dictionary if so.
@@ -182,7 +184,6 @@ class DatabaseWrapper14and15(OriginalDatabaseWrapper):
         self.set_up_pool_config()
 
     def _cursor(self):
-        global connection_pools
         settings_dict = self.settings_dict
         if self.connection is None or connection_pools[self.alias]['settings'] != settings_dict:
             # Is this the initial use of the global connection_pools dictionary for 
@@ -255,7 +256,6 @@ class DatabaseWrapper13(OriginalDatabaseWrapper):
         Override _cursor to plug in our connection pool code.  We'll return a wrapped Connection
         which can handle returning itself to the pool when its .close() method is called.
         '''
-        global connection_pools
         from django.db.backends.postgresql.version import get_version
 
         new_connection = False
