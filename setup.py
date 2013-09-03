@@ -4,7 +4,7 @@ from setuptools import find_packages
 
 setup(
     name='django-db-pool',
-    version='0.0.11',
+    version='0.0.10',
     author=u'Greg McGuire',
     author_email='gregjmcguire+github@gmail.com',
     packages=find_packages(),
